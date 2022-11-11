@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "lib": ["ESNext", "DOM"],
+    "strict": true,
+    "outDir": "dist"
+  },
+  "include": ["src/**/*.ts"]
+}

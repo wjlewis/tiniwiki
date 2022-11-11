@@ -1,0 +1,16 @@
+{
+  "name": "tiniwiki",
+  "version": "0.1.0",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf ./dist"
+  },
+  "devDependencies": {
+    "@types/katex": "^0.14.0",
+    "@types/node": "^18.11.9",
+    "typescript": "^4.8.4"
+  },
+  "dependencies": {
+    "katex": "^0.16.3"
+  }
+}
