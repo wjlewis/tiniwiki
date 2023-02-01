@@ -1,0 +1,30 @@
+{
+  "name": "tiniwiki",
+  "version": "0.0.1",
+  "packageManager": "yarn@3.3.1",
+  "scripts": {
+    "build": "webpack --mode production",
+    "clean": "rm -rf dist",
+    "dev": "concurrently 'yarn watch:src' 'yarn watch:dist'",
+    "watch:src": "webpack --mode development --watch",
+    "watch:dist": "nodemon --watch dist --ext js,css,html --exec 'yarn node dist/bundle.js test-notes'"
+  },
+  "devDependencies": {
+    "@types/katex": "^0.16.0",
+    "@types/node": "^18.11.18",
+    "@types/react": "^18.0.27",
+    "@types/react-dom": "^18.0.10",
+    "concurrently": "^7.6.0",
+    "copy-webpack-plugin": "^11.0.0",
+    "nodemon": "^2.0.20",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "ts-loader": "^9.4.2",
+    "typescript": "^4.9.5",
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.0.1"
+  },
+  "dependencies": {
+    "katex": "^0.16.4"
+  }
+}
