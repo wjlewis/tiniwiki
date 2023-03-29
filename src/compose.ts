@@ -1,119 +1,218 @@
-import { Dirent } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
-import { generateNoteHtml, generateIndexHtml } from './html';
+import chalk from 'chalk';
+import chokidar from 'chokidar';
+import { generateNoteHtml } from './html';
 
 export default async function compose(dirpath: string): Promise<void> {
-  const templates = await loadTemplates();
-  await buildAll(dirpath, templates);
-  await watchNotes(dirpath, templates);
+  await createOutputDirectories(dirpath);
+
+  const globs = ['*.txt', 'assets/*'].map(glob => `${dirpath}/${glob}`);
+
+  chokidar.watch(globs).on('all', (event, filepath) => {
+    handleEvent(event, filepath, dirpath);
+  });
 }
 
-async function watchNotes(
-  dirpath: string,
-  templates: Templates
+async function createOutputDirectories(dirpath: string): Promise<void> {
+  await fs.mkdir(path.join(dirpath, 'dist', 'assets'), { recursive: true });
+}
+
+async function handleEvent(
+  event: string,
+  filepath: string,
+  dirpath: string
 ): Promise<void> {
-  for await (const event of fs.watch(dirpath)) {
-    const { filename } = event;
-    try {
-      await buildNote(dirpath, filename, templates.note);
-    } catch {}
+  const relFilepath = path.relative(dirpath, filepath);
+  const parsed = path.parse(relFilepath);
+  const isTextFile = parsed.ext === '.txt';
+  const isAsset = parsed.dir === 'assets';
+  const distFilepath = path.join(
+    dirpath,
+    'dist',
+    isTextFile ? `${parsed.name}.html` : relFilepath
+  );
+  const isStyleFile = isAsset && parsed.ext === '.css';
+
+  switch (event) {
+    case 'add':
+    case 'change': {
+      console.log(chalk.green(`[${event}]`), parsed.base);
+
+      if (event === 'add' && isStyleFile) {
+        // A style file has been added: rebuild all notes.
+        loadStyleFilenames.bust();
+        console.log(
+          chalk.green(`Added ${parsed.base}. Rebuilding all notes...`)
+        );
+        return buildNotes(dirpath);
+      } else if (isAsset) {
+        return fs.copyFile(filepath, distFilepath);
+      } else if (isTextFile) {
+        return buildNote(dirpath, relFilepath);
+      }
+    }
+    case 'unlink': {
+      console.log(chalk.red('[remove]', parsed.base));
+      if (isStyleFile) {
+        // A style file has been removed: rebuild all notes.
+        loadStyleFilenames.bust();
+        await buildNotes(dirpath);
+
+        console.log(
+          chalk.red(`Removed ${parsed.base}. Rebuilding all notes...`)
+        );
+        return;
+      } else if (isTextFile) {
+        return fs.unlink(distFilepath);
+      }
+    }
   }
 }
 
-async function buildAll(dirpath: string, templates: Templates): Promise<void> {
-  const outdir = path.join(dirpath, 'dist');
-  await fs.rm(outdir, { force: true, recursive: true });
-  await fs.mkdir(outdir);
-
-  await copyStyles(dirpath);
-  await buildNotesAndIndex(dirpath, templates);
-  await copyAssets(dirpath);
-}
-
-async function buildNotesAndIndex(
-  dirpath: string,
-  templates: Templates
-): Promise<void> {
+async function buildNotes(dirpath: string): Promise<void> {
   const entries = await fs.readdir(dirpath, { withFileTypes: true });
-  const noteEntries = entries.filter(isTextFile);
+  const noteEntries = entries
+    .filter(entry => entry.isFile && path.parse(entry.name).ext === '.txt')
+    .map(entry => entry.name);
 
-  await Promise.all([
-    buildNotes(dirpath, noteEntries, templates.note),
-    buildIndex(dirpath, noteEntries, templates.index),
-  ]);
+  await Promise.all(noteEntries.map(filename => buildNote(dirpath, filename)));
 }
 
-async function buildNotes(
-  dirpath: string,
-  entries: Dirent[],
-  template: string
-): Promise<void> {
-  await Promise.all(
-    entries.map(entry => buildNote(dirpath, entry.name, template))
+const buildNote = batchDebounce(
+  async (dirpath: string, filename: string): Promise<void> => {
+    const [template, styleFilenames] = await Promise.all([
+      loadTemplate(),
+      loadStyleFilenames(dirpath),
+    ]);
+
+    const text = await fs.readFile(path.join(dirpath, filename), 'utf-8');
+    const { name } = path.parse(filename);
+
+    const html = generateNoteHtml(text, name, styleFilenames, template);
+
+    const artifactName = path.format({ name, ext: '.html' });
+    const artifactPath = path.join(dirpath, 'dist', artifactName);
+    await fs.writeFile(artifactPath, html);
+
+    console.log(chalk.blue('[built]'), filename);
+    return;
+  },
+  ([_dirpath, filename]) => filename,
+  500
+);
+
+const loadTemplate = debounceMemo(async (): Promise<string> => {
+  const template = await fs.readFile(
+    path.join(__dirname, 'assets', 'note-template.html'),
+    'utf-8'
   );
+
+  console.log(chalk.magenta('[load]'), 'note template');
+  return template;
+}, 500);
+
+const loadStyleFilenames = debounceMemo(
+  async (dirpath: string): Promise<string[]> => {
+    const assetPath = path.join(dirpath, 'assets');
+    try {
+      const entries = await fs.readdir(assetPath, { withFileTypes: true });
+      const cssEntries = entries
+        .filter(entry => entry.isFile && path.parse(entry.name).ext === '.css')
+        .map(entry => entry.name);
+
+      console.log(chalk.magenta('[load]'), 'CSS filenames');
+      return cssEntries;
+    } catch {}
+
+    return [];
+  },
+  500
+);
+
+function batchDebounce(
+  fn: (...args: any[]) => any,
+  keyFn: KeyFn,
+  delay: number
+): (...args: any[]) => any {
+  const reqs: { [key: string]: BatchDebounceRequest } = {};
+
+  return (...args) => {
+    const key = keyFn(args);
+
+    if (key in reqs) {
+      const req = reqs[key];
+      clearTimeout(req.timeout);
+      req.timeout = setTimeout(() => {
+        const result = fn(...req.args);
+        req.resolver(result);
+      }, delay);
+
+      return req.promise;
+    }
+
+    let resolver: (value: any) => any;
+    const promise = new Promise(resolve => {
+      resolver = resolve;
+    });
+    const timeout = setTimeout(() => {
+      const result = fn(...args);
+      resolver(result);
+    }, delay);
+
+    reqs[key] = {
+      args,
+      promise,
+      resolver,
+      timeout,
+    };
+
+    return promise;
+  };
 }
 
-async function buildNote(
-  dirpath: string,
-  filename: string,
-  template: string
-): Promise<void> {
-  const text = await fs.readFile(path.join(dirpath, filename), 'utf-8');
-  const { name } = path.parse(filename);
-  const title = name.replace(/_/g, ' ');
+type KeyFn = (...args: any[]) => string;
 
-  const html = generateNoteHtml(text, title, template);
-
-  const artifactName = path.format({ name, ext: '.html' });
-  const artifactPath = path.join(dirpath, 'dist', artifactName);
-  return fs.writeFile(artifactPath, html);
+interface BatchDebounceRequest {
+  args: any[];
+  promise: Promise<any>;
+  resolver: (value: any) => any;
+  timeout: NodeJS.Timeout;
 }
 
-async function buildIndex(
-  dirpath: string,
-  entries: Dirent[],
-  template: string
-): Promise<void> {
-  const names = entries.map(entry => path.parse(entry.name).name);
-  const html = generateIndexHtml(names, template);
-  return fs.writeFile(path.join(dirpath, 'dist', 'index.html'), html);
-}
+function debounceMemo(
+  fn: (...args: any[]) => Promise<any>,
+  delay: number
+): MemoFn {
+  let promise: Promise<any>;
+  let resolver: (value: any) => void;
+  let timeout: NodeJS.Timeout;
 
-async function copyAssets(dirpath: string): Promise<void> {
-  const assetPath = path.join(dirpath, 'assets');
-  try {
-    const stats = await fs.stat(assetPath);
-    if (stats.isDirectory()) {
-      await fs.cp(assetPath, path.join(dirpath, 'dist', 'assets'), {
-        recursive: true,
+  async function memoized(...args: any[]) {
+    clearTimeout(timeout);
+
+    if (!promise) {
+      promise = new Promise(resolve => {
+        resolver = resolve;
       });
     }
-  } catch {}
+
+    timeout = setTimeout(async () => {
+      const result = await fn(...args);
+      resolver(result);
+    }, delay);
+
+    return promise;
+  }
+
+  memoized.bust = () => {
+    promise = undefined;
+  };
+
+  return memoized;
 }
 
-function isTextFile(entry: Dirent): boolean {
-  return entry.isFile && path.parse(entry.name).ext === '.txt';
-}
-
-async function loadTemplates(): Promise<Templates> {
-  const [note, index] = await Promise.all(
-    ['note-template', 'index-template'].map(name =>
-      fs.readFile(path.join(__dirname, 'assets', `${name}.html`), 'utf-8')
-    )
-  );
-
-  return { note, index };
-}
-
-interface Templates {
-  note: string;
-  index: string;
-}
-
-function copyStyles(dirpath: string): Promise<void> {
-  return fs.cp(
-    path.join(__dirname, 'assets', 'main.css'),
-    path.join(dirpath, 'dist', 'main.css')
-  );
+interface MemoFn {
+  (...args: any[]): Promise<any>;
+  bust: () => void;
 }

@@ -32,6 +32,8 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@types/node", "npm:18.11.18"],\
             ["@types/react", "npm:18.0.27"],\
             ["@types/react-dom", "npm:18.0.10"],\
+            ["chalk", "npm:5.2.0"],\
+            ["chokidar", "npm:3.5.3"],\
             ["concurrently", "npm:7.6.0"],\
             ["copy-webpack-plugin", "virtual:6fcc50be66edf1811589a37957ab582772f1d1e95c9f12d1967f6651fca7f8f3efbededb34a7dcbf49f011aed98ffb81a36f6d67aec52b8a93a2fd638bb776e8#npm:11.0.0"],\
             ["katex", "npm:0.16.4"],\
@@ -887,6 +889,13 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["chalk", "npm:4.1.2"],\
             ["ansi-styles", "npm:4.3.0"],\
             ["supports-color", "npm:7.2.0"]\
+          ],\
+          "linkType": "HARD"\
+        }],\
+        ["npm:5.2.0", {\
+          "packageLocation": "./.yarn/cache/chalk-npm-5.2.0-bedd808592-03d8060277.zip/node_modules/chalk/",\
+          "packageDependencies": [\
+            ["chalk", "npm:5.2.0"]\
           ],\
           "linkType": "HARD"\
         }]\
@@ -2963,6 +2972,8 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@types/node", "npm:18.11.18"],\
             ["@types/react", "npm:18.0.27"],\
             ["@types/react-dom", "npm:18.0.10"],\
+            ["chalk", "npm:5.2.0"],\
+            ["chokidar", "npm:3.5.3"],\
             ["concurrently", "npm:7.6.0"],\
             ["copy-webpack-plugin", "virtual:6fcc50be66edf1811589a37957ab582772f1d1e95c9f12d1967f6651fca7f8f3efbededb34a7dcbf49f011aed98ffb81a36f6d67aec52b8a93a2fd638bb776e8#npm:11.0.0"],\
             ["katex", "npm:0.16.4"],\

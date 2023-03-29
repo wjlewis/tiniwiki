@@ -266,7 +266,7 @@ function parseEntities(text: string): Entity[] {
 
   function commitPlain(upTo: number) {
     if (upTo > wipPos) {
-      const plain = text.slice(wipPos, upTo);
+      const plain = escapeText(text.slice(wipPos, upTo));
       entities.push({ type: EntityType.plain, text: plain });
     }
   }
@@ -278,8 +278,15 @@ function parseEntities(text: string): Entity[] {
     jump(closePos + 1);
   }
 
+  let escapeNext = false;
   while (pos < text.length) {
-    if (['`', '$'].includes(text[pos])) {
+    if (escapeNext) {
+      advance();
+      escapeNext = false;
+    } else if (!escapeNext && text[pos] === '\\') {
+      advance();
+      escapeNext = true;
+    } else if (['`', '$'].includes(text[pos])) {
       const marker = text[pos];
       const closePos = findNextInlineMarker(text, pos + 1, marker);
       if (closePos < 0) {
@@ -345,25 +352,8 @@ function findNextInlineMarker(
   return -1;
 }
 
-export function entitiesToPlain(entities: Entity[]): string {
-  return entities.map(entityToPlain).join('');
-}
-
-export function entityToPlain(entity: Entity): string {
-  switch (entity.type) {
-    case EntityType.plain:
-      return entity.text;
-    case EntityType.emph:
-    case EntityType.strong:
-    case EntityType.quote:
-      return entitiesToPlain(entity.children);
-    case EntityType.mono:
-      return entity.text;
-    case EntityType.math:
-      return 'math';
-    case EntityType.link:
-      return entitiesToPlain(entity.children);
-  }
+function escapeText(text: string): string {
+  return text.replace(/\\(.)/g, (_, c) => c);
 }
 
 export type Entity =

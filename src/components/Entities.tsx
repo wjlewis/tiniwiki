@@ -1,5 +1,5 @@
 import React from 'react';
-import { Entity as EntityType } from '../parse';
+import { Entity as EntityType } from '../text/parse';
 import Entity from './Entity';
 
 export interface EntitiesProps {

@@ -1,6 +1,6 @@
 import katex from 'katex';
 import React from 'react';
-import { Entity, EntityType } from '../parse';
+import { Entity, EntityType } from '../text/parse';
 import Entities from './Entities';
 
 export interface EntityProps {

@@ -674,7 +674,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chokidar@npm:^3.5.2":
+"chalk@npm:^5.2.0":
+  version: 5.2.0
+  resolution: "chalk@npm:5.2.0"
+  checksum: 03d8060277de6cf2fd567dc25fcf770593eb5bb85f460ce443e49255a30ff1242edd0c90a06a03803b0466ff0687a939b41db1757bec987113e83de89a003caa
+  languageName: node
+  linkType: hard
+
+"chokidar@npm:^3.5.2, chokidar@npm:^3.5.3":
   version: 3.5.3
   resolution: "chokidar@npm:3.5.3"
   dependencies:
@@ -2472,6 +2479,8 @@ __metadata:
     "@types/node": ^18.11.18
     "@types/react": ^18.0.27
     "@types/react-dom": ^18.0.10
+    chalk: ^5.2.0
+    chokidar: ^3.5.3
     concurrently: ^7.6.0
     copy-webpack-plugin: ^11.0.0
     katex: ^0.16.4
@@ -2482,6 +2491,8 @@ __metadata:
     typescript: ^4.9.5
     webpack: ^5.75.0
     webpack-cli: ^5.0.1
+  bin:
+    tw: ./dist/bundle.js
   languageName: unknown
   linkType: soft
 

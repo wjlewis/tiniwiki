@@ -1,22 +1,33 @@
 import React from 'react';
 import ReactDOM from 'react-dom/server';
-import Index from './components/Index';
 import Note from './components/Note';
-import parse from './parse';
+import toPlainText from './text/toPlainText';
+import parse, { Note as ParsedNote } from './text/parse';
 
 export function generateNoteHtml(
   text: string,
-  title: string,
+  filename: string,
+  styleFilenames: string[],
   template: string
 ): string {
   const note = parse(text);
   const body = ReactDOM.renderToString(<Note note={note} />);
+  const title = extractTitle(note) ?? filename.replaceAll('_', ' ');
+  const styleTags = styleFilenames.map(createStyleTag).join('');
 
-  return template.replace('{{title}}', title).replace('{{body}}', body);
+  return template
+    .replace('{{title}}', title)
+    .replace('{{styles}}', styleTags)
+    .replace('{{body}}', body);
 }
 
-export function generateIndexHtml(names: string[], template: string): string {
-  const body = ReactDOM.renderToString(<Index names={names} />);
+function extractTitle(note: ParsedNote): string | undefined {
+  if (note.blocks[0]?.type === 'heading' && note.blocks[0]?.order === 1) {
+    return toPlainText(note.blocks[0].entities);
+  }
+}
 
-  return template.replace('{{title}}', 'Notes').replace('{{body}}', body);
+function createStyleTag(styleFilename: string): string {
+  const href = `./assets/${styleFilename}`;
+  return `<link rel="stylesheet" href="${href}" />`;
 }

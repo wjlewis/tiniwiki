@@ -1,11 +1,19 @@
 {
   "name": "tiniwiki",
-  "version": "0.0.1",
+  "scope": "william-j-lewis",
+  "version": "0.0.2",
   "packageManager": "yarn@3.3.1",
+  "bin": {
+    "tw": "./dist/bundle.js"
+  },
+  "files": [
+    "dist/**/*"
+  ],
   "scripts": {
-    "build": "webpack --mode production",
+    "build": "webpack --mode production && chmod +x dist/bundle.js",
+    "build:dev": "webpack --mode development",
     "clean": "rm -rf dist",
-    "dev": "concurrently 'yarn watch:src' 'yarn watch:dist'",
+    "dev": "yarn run build:dev && concurrently 'yarn watch:src' 'yarn watch:dist'",
     "watch:src": "webpack --mode development --watch",
     "watch:dist": "nodemon --watch dist --ext js,css,html --exec 'yarn node dist/bundle.js test-notes'"
   },
@@ -25,6 +33,8 @@
     "webpack-cli": "^5.0.1"
   },
   "dependencies": {
+    "chalk": "^5.2.0",
+    "chokidar": "^3.5.3",
     "katex": "^0.16.4"
   }
 }

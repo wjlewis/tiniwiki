@@ -1,5 +1,6 @@
 const path = require('path');
 const CopyPlugin = require('copy-webpack-plugin');
+const webpack = require('webpack');
 
 module.exports = {
   target: 'node',
@@ -16,6 +17,17 @@ module.exports = {
     new CopyPlugin({
       patterns: [{ from: './src/assets', to: './assets' }],
     }),
+    new webpack.BannerPlugin({
+      banner: '#!/usr/bin/env node',
+      raw: true,
+    }),
+    ...(process.platform !== 'darwin'
+      ? [
+          new webpack.IgnorePlugin({
+            resourceRegExp: /^fsevents$/,
+          }),
+        ]
+      : []),
   ],
   resolve: {
     extensions: ['.tsx', '.ts', '.jsx', '.js'],

@@ -1,15 +1,15 @@
 import katex from 'katex';
 import React from 'react';
-import { Block, BlockType, entitiesToPlain } from '../parse';
+import { Block, BlockType } from '../text/parse';
+import toPlainText from '../text/toPlainText';
 import Blocks from './Blocks';
 import Entities from './Entities';
 
 export interface BlockProps {
   block: Block;
-  withinBlockquote?: boolean;
 }
 
-const Block: React.FC<BlockProps> = ({ block, withinBlockquote }) => {
+const Block: React.FC<BlockProps> = ({ block }) => {
   switch (block.type) {
     case BlockType.para:
       return (
@@ -22,20 +22,7 @@ const Block: React.FC<BlockProps> = ({ block, withinBlockquote }) => {
       if (block.order === 1) {
         return <h1>{entities}</h1>;
       } else {
-        if (withinBlockquote) {
-          return <h2>{entities}</h2>;
-        } else {
-          const id = entitiesToPlain(block.entities)
-            .toLowerCase()
-            .split(' ')
-            .join('-');
-          return (
-            <div className="subsection-link" id={id}>
-              <a href={`#${id}`}>§</a>
-              <h2>{entities}</h2>
-            </div>
-          );
-        }
+        return <h2>{entities}</h2>;
       }
     }
     case BlockType.code:
@@ -59,13 +46,13 @@ const Block: React.FC<BlockProps> = ({ block, withinBlockquote }) => {
     case BlockType.quote:
       return (
         <blockquote>
-          <Blocks blocks={block.children} withinBlockquote />
+          <Blocks blocks={block.children} />
         </blockquote>
       );
     case BlockType.img:
       return (
         <figure>
-          <img src={block.src} alt={entitiesToPlain(block.alt)} />
+          <img src={block.src} alt={toPlainText(block.alt)} />
 
           <figcaption>
             <Entities entities={block.alt} />

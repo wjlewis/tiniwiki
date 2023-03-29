@@ -1,5 +1,5 @@
 import React from 'react';
-import { Note } from '../parse';
+import { Note } from '../text/parse';
 import Blocks from './Blocks';
 
 export interface NoteProps {
