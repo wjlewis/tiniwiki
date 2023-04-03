@@ -294,7 +294,10 @@ function parseEntities(text: string): Entity[] {
       } else {
         const type = marker === '`' ? EntityType.mono : EntityType.math;
         const innerText = text.slice(pos + 1, closePos);
-        addEntity(closePos, { type, text: innerText });
+        addEntity(closePos, {
+          type,
+          text: type === EntityType.mono ? escapeText(innerText) : innerText,
+        });
       }
     } else if (['_', '*', '"'].includes(text[pos])) {
       const marker = text[pos];
@@ -342,8 +345,14 @@ function findNextInlineMarker(
   marker: string,
   ...avoid: string[]
 ): number {
+  let escapeNext = false;
   for (let i = start; i < text.length; i++) {
-    if (text.slice(i).startsWith(marker)) {
+    if (escapeNext) {
+      escapeNext = false;
+      continue;
+    } else if (text[i] === '\\') {
+      escapeNext = true;
+    } else if (text.slice(i).startsWith(marker)) {
       return i;
     } else if (avoid.some(a => text.slice(i).startsWith(a))) {
       break;

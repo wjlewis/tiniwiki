@@ -7,7 +7,7 @@ import { generateNoteHtml } from './html';
 export default async function compose(dirpath: string): Promise<void> {
   await createOutputDirectories(dirpath);
 
-  const globs = ['*.txt', 'assets/*'].map(glob => `${dirpath}/${glob}`);
+  const globs = ['*.txt', 'assets/**/*'].map(glob => `${dirpath}/${glob}`);
 
   chokidar.watch(globs).on('all', (event, filepath) => {
     handleEvent(event, filepath, dirpath);

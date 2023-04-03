@@ -1,7 +1,7 @@
 {
   "name": "tiniwiki",
   "scope": "william-j-lewis",
-  "version": "0.0.2",
+  "version": "0.0.6",
   "packageManager": "yarn@3.3.1",
   "bin": {
     "tw": "./dist/bundle.js"

@@ -4,6 +4,7 @@ import { Block, BlockType } from '../text/parse';
 import toPlainText from '../text/toPlainText';
 import Blocks from './Blocks';
 import Entities from './Entities';
+import highlight from '../hl/highlight';
 
 export interface BlockProps {
   block: Block;
@@ -22,13 +23,19 @@ const Block: React.FC<BlockProps> = ({ block }) => {
       if (block.order === 1) {
         return <h1>{entities}</h1>;
       } else {
-        return <h2>{entities}</h2>;
+        const id = toPlainText(block.entities);
+        return (
+          <div className="h2-container">
+            <h2 id={id}>{entities}</h2>
+            <a href={`#${id}`}>#</a>
+          </div>
+        );
       }
     }
     case BlockType.code:
       return (
         <pre>
-          <code>{block.text}</code>
+          <code>{highlight(block.text, block.lang)}</code>
         </pre>
       );
     case BlockType.math:
