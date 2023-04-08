@@ -1,15 +1,6 @@
-import compose from './compose';
+import { generateNoteHtml } from './html';
+import fs from 'fs';
 
-function main(): Promise<void> {
-  const args = process.argv;
-
-  if (args.length !== 3) {
-    console.error(`usage: tiniwiki <dir>`);
-    process.exit(1);
-  }
-
-  const dirpath = args[2];
-  return compose(dirpath);
-}
-
-main();
+const source = fs.readFileSync(0, 'utf-8');
+const html = generateNoteHtml(source);
+fs.writeFileSync(1, html);

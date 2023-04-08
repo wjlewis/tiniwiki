@@ -16,8 +16,6 @@ function entityToPlainText(entity: Entity): string {
       return `"${toPlainText(entity.children)}"`;
     case EntityType.mono:
       return entity.text;
-    case EntityType.math:
-      return 'math';
     case EntityType.link:
       return toPlainText(entity.children);
   }

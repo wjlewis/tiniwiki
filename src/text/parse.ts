@@ -1,205 +1,165 @@
-export default function parse(text: string): Note {
-  return { blocks: parseBlocks(text) };
+export default function parse(source: string): Note {
+  const lines = source.split(/\n|\r\n/g);
+  return { blocks: linesToBlocks(lines) };
 }
 
 export interface Note {
   blocks: Block[];
 }
 
-function parseBlocks(text: string): Block[] {
+function linesToBlocks(lines: string[]): Block[] {
   const blocks: Block[] = [];
-  const lines = text.split('\n');
-
-  let i = 0;
-  let wipIdx = 0;
-
-  function advance() {
-    i += 1;
-  }
-
-  function jump(to: number) {
-    i = to;
-    wipIdx = to;
-  }
-
-  function commitPara(upTo: number) {
-    if (upTo > wipIdx) {
-      const text = lines.slice(wipIdx, upTo).join('\n');
-      const entities = parseEntities(text);
-      blocks.push({ type: BlockType.para, entities });
-    }
-  }
-
-  function addBlock(endIdx: number, fn: (text: string) => Block) {
-    commitPara(i);
-    const text = lines.slice(i + 1, endIdx).join('\n');
-    blocks.push(fn(text));
-    jump(endIdx + 1);
-  }
-
-  while (i < lines.length) {
-    const line = lines[i];
-
-    if (line[0] === '#') {
-      addBlock(i, () => {
-        let order = 0;
-        while (line[order] === '#' && order <= 2) {
-          order += 1;
-        }
-        const text = line.slice(order).trim();
-        const entities = parseEntities(text);
-        return { type: BlockType.heading, order, entities };
-      });
-    } else if (line.startsWith('```')) {
-      const closeIdx = findNextBlockMarker(lines, i + 1, '```');
-      if (closeIdx < 0) {
-        advance();
-      } else {
-        addBlock(closeIdx, text => {
-          const lang = line.slice(3).trim();
-          return {
-            type: BlockType.code,
-            text,
-            lang: lang.length > 0 ? lang : undefined,
-          };
-        });
-      }
-    } else if (line.startsWith('$$')) {
-      const closeIdx = findNextBlockMarker(lines, i + 1, '$$');
-      if (closeIdx < 0) {
-        advance();
-      } else {
-        addBlock(closeIdx, text => ({
-          type: BlockType.math,
-          text,
-        }));
-      }
-    } else if (line.startsWith('>>>')) {
-      const closeIdx = findNextBlockMarker(lines, i + 1, '>>>');
-      if (closeIdx < 0) {
-        advance();
-      } else {
-        addBlock(closeIdx, text => {
-          const children = parseBlocks(text);
-          return { type: BlockType.quote, children };
-        });
-      }
-    } else if (line.startsWith('![')) {
-      const midPos = findNextInlineMarker(line, 2, '](', ']');
-      if (midPos < 0) {
-        advance();
-      } else {
-        const closePos = findNextInlineMarker(line, midPos + 2, ')');
-        if (closePos < 0) {
-          advance();
-        } else {
-          addBlock(i, () => {
-            const src = line.slice(midPos + 2, closePos);
-            const alt = parseEntities(line.slice(2, midPos));
-            return { type: BlockType.img, src, alt };
-          });
-        }
-      }
-    } else if (/^(- )|(\d+\.)/.test(line)) {
-      const ordered = !line.startsWith('- ');
-      const closePos = findListClosePos(lines, i, ordered);
-      addBlock(closePos, () => {
-        const collected = collectListLines(lines.slice(i, closePos));
-        const items = collected.map(parseEntities);
-        const type = ordered ? BlockType.ol : BlockType.ul;
-        return { type, items };
-      });
-    } else if (line.trim().length === 0) {
-      commitPara(i);
-      jump(i + 1);
-    } else {
-      advance();
-    }
-  }
-
-  commitPara(lines.length);
-
-  return blocks;
-}
-
-function findNextBlockMarker(
-  lines: string[],
-  start: number,
-  marker: string
-): number {
-  for (let i = start; i < lines.length; i++) {
-    if (lines[i].startsWith(marker)) {
-      return i;
-    }
-  }
-  return lines.length;
-}
-
-function findListClosePos(
-  lines: string[],
-  start: number,
-  ordered: boolean
-): number {
-  for (let i = start; i < lines.length; i++) {
-    if (lines[i].trim().length === 0) {
-      return i;
-    } else if (
-      lines[i].startsWith(' ') ||
-      (ordered && /^\d+\./.test(lines[i])) ||
-      (!ordered && lines[i].startsWith('- '))
-    ) {
-      continue;
-    } else {
-      return i;
-    }
-  }
-  return lines.length;
-}
-
-function collectListLines(lines: string[]): string[] {
-  const collected: string[] = [];
-  let wip: string[] = [];
+  let wip = [];
 
   function commitWip() {
-    if (wip.length > 0) {
-      collected.push(wip.join(' '));
+    const text = wip.join('\n').trim();
+    if (text.length > 0) {
+      const entities = textToEntities(text);
+      blocks.push({ type: BlockType.para, entities });
     }
     wip = [];
   }
 
-  for (const line of lines) {
-    if (line.startsWith(' ')) {
-      wip.push(line.trim());
-    } else {
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const j = firstNontrivialIndex(line);
+
+    if (j < 0) {
+      // Empty line.
       commitWip();
-      const [_first, ...rest] = line.split(' ');
-      wip.push(rest.join(' '));
+      i++;
+      continue;
+    } else if (line[j] === '#') {
+      // Heading.
+      commitWip();
+      let order = 1;
+      while (order < 6 && line[j + order] === '#') {
+        order++;
+      }
+      const text = line.substring(j + order).trim();
+      const entities = textToEntities(text);
+      blocks.push({ type: BlockType.heading, order, entities });
+      i++;
+      continue;
+    } else if (line.substring(j).startsWith('```')) {
+      const endIndex = findIndexFrom(i + 1, lines, line =>
+        line.substring(j).startsWith('```')
+      );
+
+      if (endIndex >= 0) {
+        // Pre.
+        commitWip();
+        const text = lines
+          .slice(i + 1, endIndex)
+          .map(line => line.substring(j))
+          .join('\n');
+        const meta = line.substring(j + 3).trim();
+        blocks.push({
+          type: BlockType.pre,
+          text: unescapeBackticks(text),
+          meta,
+        });
+        i = endIndex + 1;
+        continue;
+      }
+    } else if (line[j] === '>') {
+      // Blockquote.
+      commitWip();
+      const endIndex = indentedBlockEndIndex(lines, i + 1, j, '>');
+      const quoteLines = lines
+        .slice(i, endIndex)
+        .map(line => line.substring(j + 1));
+      const children = linesToBlocks(quoteLines);
+      blocks.push({ type: BlockType.quote, children });
+      i = endIndex;
+      continue;
+    } else if (/^(-|\d+\.)/.test(line.substring(j))) {
+      // List.
+      commitWip();
+      const unordered = line.substring(j).startsWith('-');
+      const items = [];
+
+      const pat = unordered ? /^(-)/ : /^(\d+\.)/;
+      let k = i;
+      while (k < lines.length) {
+        const line = lines[k].substring(j);
+        if (!pat.test(line)) {
+          break;
+        }
+        const endIndex = indentedBlockEndIndex(lines, k + 1, j);
+        const itemLines = [
+          line.replace(pat, '').trimStart(),
+          ...lines.slice(k + 1, endIndex).map(line => line.substring(j + 1)),
+        ];
+        const children = linesToBlocks(itemLines);
+        items.push({ children });
+        k = endIndex;
+        i = k;
+      }
+
+      blocks.push({ type: BlockType.list, ordered: !unordered, items });
+      continue;
     }
+
+    wip.push(line);
+    i++;
   }
 
   commitWip();
-  return collected;
+
+  return blocks;
+}
+
+function firstNontrivialIndex(line: string): number {
+  for (let i = 0; i < line.length; i++) {
+    if (/\S/.test(line[i])) {
+      return i;
+    }
+  }
+
+  return -1;
+}
+
+function indentedBlockEndIndex(
+  lines: string[],
+  start: number,
+  indent: number,
+  permit?: string
+): number {
+  for (let i = start; i < lines.length; i++) {
+    const line = lines[i];
+    const j = firstNontrivialIndex(line);
+
+    if (
+      (j >= 0 && j < indent) ||
+      (j === indent && (!permit || line[j] !== permit))
+    ) {
+      return i;
+    }
+  }
+
+  return lines.length;
+}
+
+function findIndexFrom(start, xs, fn) {
+  const index = xs.slice(start).findIndex(fn);
+  return index < 0 ? index : start + index;
 }
 
 export type Block =
   | ParaBlock
   | HeadingBlock
-  | CodeBlock
-  | MathBlock
+  | PreBlock
   | QuoteBlock
-  | ImgBlock
-  | UlBlock
-  | OlBlock;
+  | ListBlock;
 
 export enum BlockType {
   para = 'para',
   heading = 'heading',
-  code = 'code',
-  math = 'math',
+  pre = 'pre',
   quote = 'quote',
-  img = 'img',
-  ul = 'ul',
-  ol = 'ol',
+  list = 'list',
 }
 
 export interface ParaBlock extends BaseBlock {
@@ -213,15 +173,10 @@ export interface HeadingBlock extends BaseBlock {
   entities: Entity[];
 }
 
-export interface CodeBlock extends BaseBlock {
-  type: BlockType.code;
-  lang?: string;
+export interface PreBlock extends BaseBlock {
+  type: BlockType.pre;
   text: string;
-}
-
-export interface MathBlock extends BaseBlock {
-  type: BlockType.math;
-  text: string;
+  meta?: string;
 }
 
 export interface QuoteBlock extends BaseBlock {
@@ -229,140 +184,122 @@ export interface QuoteBlock extends BaseBlock {
   children: Block[];
 }
 
-export interface ImgBlock extends BaseBlock {
-  type: BlockType.img;
-  src: string;
-  alt: Entity[];
-}
-
-export interface UlBlock extends BaseBlock {
-  type: BlockType.ul;
-  items: Array<Entity[]>;
-}
-
-export interface OlBlock extends BaseBlock {
-  type: BlockType.ol;
-  items: Array<Entity[]>;
+export interface ListBlock extends BaseBlock {
+  type: BlockType.list;
+  ordered: boolean;
+  items: Block[];
 }
 
 interface BaseBlock {
   type: BlockType;
 }
 
-function parseEntities(text: string): Entity[] {
+function textToEntities(source: string): Entity[] {
   const entities: Entity[] = [];
+  let wipIndex = 0;
+  let i = 0;
 
-  let pos = 0;
-  let wipPos = 0;
-
-  function advance() {
-    pos += 1;
-  }
-
-  function jump(to: number) {
-    pos = to;
-    wipPos = to;
-  }
-
-  function commitPlain(upTo: number) {
-    if (upTo > wipPos) {
-      const plain = escapeText(text.slice(wipPos, upTo));
-      entities.push({ type: EntityType.plain, text: plain });
+  function commitWip() {
+    const text = source.substring(wipIndex, i);
+    if (text.length > 0) {
+      entities.push({ type: EntityType.plain, text: unescapeAll(text) });
     }
+    wipIndex = i;
   }
 
-  // Add an entity that spans `pos` to `closePos`.
-  function addEntity(closePos: number, entity: Entity) {
-    commitPlain(pos);
-    entities.push(entity);
-    jump(closePos + 1);
+  function advanceTo(j: number) {
+    i = j;
+    wipIndex = i;
   }
 
   let escapeNext = false;
-  while (pos < text.length) {
+  while (i < source.length) {
     if (escapeNext) {
-      advance();
       escapeNext = false;
-    } else if (!escapeNext && text[pos] === '\\') {
-      advance();
+      i++;
+      continue;
+    }
+
+    const c = source[i];
+
+    if (c === '\\') {
       escapeNext = true;
-    } else if (['`', '$'].includes(text[pos])) {
-      const marker = text[pos];
-      const closePos = findNextInlineMarker(text, pos + 1, marker);
-      if (closePos < 0) {
-        advance();
-      } else {
-        const type = marker === '`' ? EntityType.mono : EntityType.math;
-        const innerText = text.slice(pos + 1, closePos);
-        addEntity(closePos, {
-          type,
-          text: type === EntityType.mono ? escapeText(innerText) : innerText,
-        });
-      }
-    } else if (['_', '*', '"'].includes(text[pos])) {
-      const marker = text[pos];
-      const closePos = findNextInlineMarker(text, pos + 1, marker);
-      if (closePos < 0) {
-        advance();
-      } else {
-        const innerText = text.slice(pos + 1, closePos);
-        const children = parseEntities(innerText);
-        const type = {
-          _: EntityType.emph,
-          '*': EntityType.strong,
-          '"': EntityType.quote,
-        }[marker];
-        addEntity(closePos, { type, children } as Entity);
-      }
-    } else if (text[pos] === '[') {
-      const midPos = findNextInlineMarker(text, pos + 1, '](', ']');
-      if (midPos < 0) {
-        advance();
-      } else {
-        const closePos = findNextInlineMarker(text, midPos + 2, ')');
-        if (closePos < 0) {
-          advance();
+      i++;
+      continue;
+    } else if ('_*`"'.includes(c)) {
+      const endIndex = nextOccurrenceOf(c, source, i + 1);
+      if (endIndex >= 0) {
+        // Styled or quoted text.
+        commitWip();
+        const text = source.slice(i + 1, endIndex);
+        if (c === '`') {
+          entities.push({
+            type: EntityType.mono,
+            text: unescapeBackticks(text),
+          });
         } else {
-          const linkText = text.slice(pos + 1, midPos);
-          const href = text.slice(midPos + 2, closePos);
-          const children = parseEntities(linkText);
-          addEntity(closePos, { type: EntityType.link, href, children });
+          const children = textToEntities(text);
+          const type = {
+            _: EntityType.emph,
+            '*': EntityType.strong,
+            '"': EntityType.quote,
+          }[c];
+          entities.push({ type, children } as Entity);
+        }
+
+        advanceTo(endIndex + 1);
+        continue;
+      }
+    } else if (c === '[') {
+      const rBracketIndex = nextOccurrenceOf(']', source, i + 1);
+      if (rBracketIndex >= 0 && source[rBracketIndex + 1] === '(') {
+        const rParenIndex = nextOccurrenceOf(')', source, rBracketIndex + 2);
+        if (rParenIndex >= 0) {
+          // Link.
+          commitWip();
+          const text = source.substring(i + 1, rBracketIndex);
+          const children = textToEntities(text);
+          const href = source.substring(rBracketIndex + 2, rParenIndex);
+          entities.push({ type: EntityType.link, href, children });
+          advanceTo(rParenIndex + 1);
+          continue;
         }
       }
-    } else {
-      advance();
     }
+
+    i++;
   }
 
-  commitPlain(text.length);
+  commitWip();
 
   return entities;
 }
 
-function findNextInlineMarker(
-  text: string,
-  start: number,
+function nextOccurrenceOf(
   marker: string,
-  ...avoid: string[]
+  source: string,
+  start: number
 ): number {
   let escapeNext = false;
-  for (let i = start; i < text.length; i++) {
+  let inMono = false;
+
+  for (let i = start; i < source.length; i++) {
     if (escapeNext) {
       escapeNext = false;
       continue;
-    } else if (text[i] === '\\') {
+    }
+
+    const c = source[i];
+    if (c === '\\') {
       escapeNext = true;
-    } else if (text.slice(i).startsWith(marker)) {
+    } else if (c === marker && !inMono) {
       return i;
-    } else if (avoid.some(a => text.slice(i).startsWith(a))) {
-      break;
+    } else if (c === '`') {
+      inMono = !inMono;
     }
   }
-  return -1;
-}
 
-function escapeText(text: string): string {
-  return text.replace(/\\(.)/g, (_, c) => c);
+  return -1;
 }
 
 export type Entity =
@@ -371,7 +308,6 @@ export type Entity =
   | StrongEntity
   | QuoteEntity
   | MonoEntity
-  | MathEntity
   | LinkEntity;
 
 export enum EntityType {
@@ -380,7 +316,6 @@ export enum EntityType {
   strong = 'strong',
   quote = 'quote',
   mono = 'mono',
-  math = 'math',
   link = 'link',
 }
 
@@ -409,11 +344,6 @@ export interface MonoEntity extends BaseEntity {
   text: string;
 }
 
-export interface MathEntity extends BaseEntity {
-  type: EntityType.math;
-  text: string;
-}
-
 export interface LinkEntity extends BaseEntity {
   type: EntityType.link;
   href: string;
@@ -422,4 +352,12 @@ export interface LinkEntity extends BaseEntity {
 
 interface BaseEntity {
   type: EntityType;
+}
+
+function unescapeAll(text: string): string {
+  return text.replace(/\\(.)/g, (_, c) => c);
+}
+
+function unescapeBackticks(text: string): string {
+  return text.replace(/\\`/g, '`');
 }

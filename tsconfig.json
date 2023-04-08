@@ -8,5 +8,5 @@
     "esModuleInterop": true,
     "allowJs": true
   },
-  "include": ["src/*", "src/text/parse.ts", "src/text/toPlainText.ts"]
+  "include": ["src/*"]
 }

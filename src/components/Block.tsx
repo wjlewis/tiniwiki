@@ -1,4 +1,3 @@
-import katex from 'katex';
 import React from 'react';
 import { Block, BlockType } from '../text/parse';
 import toPlainText from '../text/toPlainText';
@@ -20,35 +19,14 @@ const Block: React.FC<BlockProps> = ({ block }) => {
       );
     case BlockType.heading: {
       const entities = <Entities entities={block.entities} />;
-      if (block.order === 1) {
-        return <h1>{entities}</h1>;
-      } else {
-        const id = toPlainText(block.entities);
-        return (
-          <div className="h2-container">
-            <h2 id={id}>{entities}</h2>
-            <a href={`#${id}`}>#</a>
-          </div>
-        );
-      }
+      const Tag = `h${block.order}` as keyof JSX.IntrinsicElements;
+      return <Tag>{entities}</Tag>;
     }
-    case BlockType.code:
+    case BlockType.pre:
       return (
         <pre>
-          <code>{highlight(block.text, block.lang)}</code>
+          <code>{highlight(block.text, block.meta)}</code>
         </pre>
-      );
-    case BlockType.math:
-      return (
-        <div
-          className="math"
-          dangerouslySetInnerHTML={{
-            __html: katex.renderToString(block.text, {
-              displayMode: true,
-              throwOnError: false,
-            }),
-          }}
-        />
       );
     case BlockType.quote:
       return (
@@ -56,36 +34,13 @@ const Block: React.FC<BlockProps> = ({ block }) => {
           <Blocks blocks={block.children} />
         </blockquote>
       );
-    case BlockType.img:
-      return (
-        <figure>
-          <img src={block.src} alt={toPlainText(block.alt)} />
-
-          <figcaption>
-            <Entities entities={block.alt} />
-          </figcaption>
-        </figure>
-      );
-    case BlockType.ul:
-      return (
-        <ul>
-          {block.items.map((entities, i) => (
-            <li key={i}>
-              <Entities entities={entities} />
-            </li>
-          ))}
-        </ul>
-      );
-    case BlockType.ol:
-      return (
-        <ol>
-          {block.items.map((entities, i) => (
-            <li key={i}>
-              <Entities entities={entities} />
-            </li>
-          ))}
-        </ol>
-      );
+    case BlockType.list:
+      const items = block.items.map((block, i) => (
+        <li key={i}>
+          <Block block={block} />
+        </li>
+      ));
+      return block.ordered ? <ol>{items}</ol> : <ul>{items}</ul>;
   }
 };
 

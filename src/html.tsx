@@ -4,21 +4,12 @@ import Note from './components/Note';
 import toPlainText from './text/toPlainText';
 import parse, { Note as ParsedNote } from './text/parse';
 
-export function generateNoteHtml(
-  text: string,
-  filename: string,
-  styleFilenames: string[],
-  template: string
-): string {
-  const note = parse(text);
+export function generateNoteHtml(source: string): string {
+  const note = parse(source);
   const body = ReactDOM.renderToString(<Note note={note} />);
-  const title = extractTitle(note) ?? filename.replaceAll('_', ' ');
-  const styleTags = styleFilenames.map(createStyleTag).join('');
+  const title = extractTitle(note) ?? '';
 
-  return template
-    .replace('{{title}}', title)
-    .replace('{{styles}}', styleTags)
-    .replace('{{body}}', body);
+  return template.replace('{{title}}', title).replace('{{body}}', body);
 }
 
 function extractTitle(note: ParsedNote): string | undefined {
@@ -27,7 +18,17 @@ function extractTitle(note: ParsedNote): string | undefined {
   }
 }
 
-function createStyleTag(styleFilename: string): string {
-  const href = `./assets/${styleFilename}`;
-  return `<link rel="stylesheet" href="${href}" />`;
-}
+const template = `
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="/main.css" />
+    <title>{{title}}</title>
+  </head>
+
+  <body>
+    {{body}}
+  </body>
+</html>
+`.trim();

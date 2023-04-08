@@ -1,4 +1,3 @@
-import katex from 'katex';
 import React from 'react';
 import { Entity, EntityType } from '../text/parse';
 import Entities from './Entities';
@@ -21,15 +20,6 @@ const Entity: React.FC<EntityProps> = ({ entity }) => {
       );
     case EntityType.mono:
       return <code className="inline">{entity.text}</code>;
-    case EntityType.math:
-      return (
-        <span
-          className="math"
-          dangerouslySetInnerHTML={{
-            __html: katex.renderToString(entity.text, { throwOnError: false }),
-          }}
-        />
-      );
     case EntityType.link:
       return (
         <a href={entity.href}>
