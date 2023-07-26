@@ -78,7 +78,7 @@ function linesToBlocks(lines: string[]): Block[] {
       // List.
       commitWip();
       const unordered = line.substring(j).startsWith('-');
-      const items = [];
+      const items: Array<Block[]> = [];
 
       const pat = unordered ? /^(-)/ : /^(\d+\.)/;
       let k = i;
@@ -93,7 +93,7 @@ function linesToBlocks(lines: string[]): Block[] {
           ...lines.slice(k + 1, endIndex).map(line => line.substring(j + 1)),
         ];
         const children = linesToBlocks(itemLines);
-        items.push({ children });
+        items.push(children);
         k = endIndex;
         i = k;
       }
@@ -187,7 +187,7 @@ export interface QuoteBlock extends BaseBlock {
 export interface ListBlock extends BaseBlock {
   type: BlockType.list;
   ordered: boolean;
-  items: Block[];
+  items: Array<Block[]>;
 }
 
 interface BaseBlock {

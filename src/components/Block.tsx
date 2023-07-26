@@ -1,6 +1,5 @@
 import React from 'react';
 import { Block, BlockType } from '../text/parse';
-import toPlainText from '../text/toPlainText';
 import Blocks from './Blocks';
 import Entities from './Entities';
 import highlight from '../hl/highlight';
@@ -34,13 +33,14 @@ const Block: React.FC<BlockProps> = ({ block }) => {
           <Blocks blocks={block.children} />
         </blockquote>
       );
-    case BlockType.list:
+    case BlockType.list: {
       const items = block.items.map((block, i) => (
         <li key={i}>
-          <Block block={block} />
+          <Blocks blocks={block} />
         </li>
       ));
       return block.ordered ? <ol>{items}</ol> : <ul>{items}</ul>;
+    }
   }
 };
 
