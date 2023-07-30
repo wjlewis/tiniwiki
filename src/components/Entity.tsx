@@ -26,6 +26,15 @@ const Entity: React.FC<EntityProps> = ({ entity }) => {
           <Entities entities={entity.children} />
         </a>
       );
+    case EntityType.footnoteRef: {
+      const id = `__footnote_ref_${entity.key}`;
+      const href = `#__footnote_${entity.key}`;
+      return (
+        <a id={id} href={href}>
+          <sup>[{entity.key}]</sup>
+        </a>
+      );
+    }
   }
 };
 

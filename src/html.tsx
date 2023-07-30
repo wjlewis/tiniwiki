@@ -3,9 +3,10 @@ import ReactDOM from 'react-dom/server';
 import Note from './components/Note';
 import toPlainText from './text/toPlainText';
 import parse, { Note as ParsedNote } from './text/parse';
+import reKeyFootnotes from './text/reKeyFootnotes';
 
 export function generateNoteHtml(source: string): string {
-  const note = parse(source);
+  const note = reKeyFootnotes(parse(source));
   const body = ReactDOM.renderToString(<Note note={note} />);
   const title = extractTitle(note) ?? '';
 

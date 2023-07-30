@@ -3,6 +3,7 @@ import { Block, BlockType } from '../text/parse';
 import Blocks from './Blocks';
 import Entities from './Entities';
 import highlight from '../hl/highlight';
+import toPlainText from '../text/toPlainText';
 
 export interface BlockProps {
   block: Block;
@@ -18,8 +19,9 @@ const Block: React.FC<BlockProps> = ({ block }) => {
       );
     case BlockType.heading: {
       const entities = <Entities entities={block.entities} />;
+      const id = toPlainText(block.entities).replace(/\s+/g, '-');
       const Tag = `h${block.order}` as keyof JSX.IntrinsicElements;
-      return <Tag>{entities}</Tag>;
+      return <Tag id={id}>{entities}</Tag>;
     }
     case BlockType.pre:
       return (
@@ -40,6 +42,16 @@ const Block: React.FC<BlockProps> = ({ block }) => {
         </li>
       ));
       return block.ordered ? <ol>{items}</ol> : <ul>{items}</ul>;
+    }
+    case BlockType.footnote: {
+      const id = `__footnote_${block.key}`;
+      const href = `#__footnote_ref_${block.key}`;
+      return (
+        <div id={id} className="footnote">
+          <a href={href}>[{block.key}]</a>
+          <Blocks blocks={block.children} />
+        </div>
+      );
     }
   }
 };

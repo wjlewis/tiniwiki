@@ -57,7 +57,7 @@ function linesToBlocks(lines: string[]): Block[] {
         const meta = line.substring(j + 3).trim();
         blocks.push({
           type: BlockType.pre,
-          text: unescapeBackticks(text),
+          text: unescapeInBlockMono(text),
           meta,
         });
         i = endIndex + 1;
@@ -99,6 +99,18 @@ function linesToBlocks(lines: string[]): Block[] {
       }
 
       blocks.push({ type: BlockType.list, ordered: !unordered, items });
+      continue;
+    } else if (/^\[\^\w+\]:/.test(line.substring(j))) {
+      // Footnote
+      const endIndex = indentedBlockEndIndex(lines, i + 1, j);
+      const re = /^\[\^(?<key>\w+)\]:/;
+      const match = re.exec(line.substring(j));
+      const key = match.groups.key;
+      const lineText = line.substring(j + match[0].length);
+      const noteLines = [lineText, ...lines.slice(i + 1, endIndex)];
+      const children = linesToBlocks(noteLines);
+      blocks.push({ type: BlockType.footnote, key, children });
+      i = endIndex;
       continue;
     }
 
@@ -152,7 +164,8 @@ export type Block =
   | HeadingBlock
   | PreBlock
   | QuoteBlock
-  | ListBlock;
+  | ListBlock
+  | FootnoteBlock;
 
 export enum BlockType {
   para = 'para',
@@ -160,6 +173,7 @@ export enum BlockType {
   pre = 'pre',
   quote = 'quote',
   list = 'list',
+  footnote = 'footnote',
 }
 
 export interface ParaBlock extends BaseBlock {
@@ -188,6 +202,12 @@ export interface ListBlock extends BaseBlock {
   type: BlockType.list;
   ordered: boolean;
   items: Array<Block[]>;
+}
+
+export interface FootnoteBlock extends BaseBlock {
+  type: BlockType.footnote;
+  key: string;
+  children: Block[];
 }
 
 interface BaseBlock {
@@ -235,7 +255,7 @@ function textToEntities(source: string): Entity[] {
         if (c === '`') {
           entities.push({
             type: EntityType.mono,
-            text: unescapeBackticks(text),
+            text: unescapeInMono(text),
           });
         } else {
           const children = textToEntities(text);
@@ -264,6 +284,14 @@ function textToEntities(source: string): Entity[] {
           advanceTo(rParenIndex + 1);
           continue;
         }
+      } else if (/^\[\^\w+\]/.test(source.substring(i))) {
+        // Footnote Ref.
+        commitWip();
+        const match = /^\[\^(?<key>\w+)\]/.exec(source.substring(i));
+        const key = match.groups.key;
+        entities.push({ type: EntityType.footnoteRef, key });
+        advanceTo(i + match[0].length);
+        continue;
       }
     }
 
@@ -308,7 +336,8 @@ export type Entity =
   | StrongEntity
   | QuoteEntity
   | MonoEntity
-  | LinkEntity;
+  | LinkEntity
+  | FootnoteRefEntity;
 
 export enum EntityType {
   plain = 'plain',
@@ -317,6 +346,7 @@ export enum EntityType {
   quote = 'quote',
   mono = 'mono',
   link = 'link',
+  footnoteRef = 'footnoteRef',
 }
 
 export interface PlainEntity extends BaseEntity {
@@ -350,6 +380,11 @@ export interface LinkEntity extends BaseEntity {
   children: Entity[];
 }
 
+export interface FootnoteRefEntity extends BaseEntity {
+  type: EntityType.footnoteRef;
+  key: string;
+}
+
 interface BaseEntity {
   type: EntityType;
 }
@@ -358,6 +393,10 @@ function unescapeAll(text: string): string {
   return text.replace(/\\(.)/g, (_, c) => c);
 }
 
-function unescapeBackticks(text: string): string {
+function unescapeInMono(text: string): string {
   return text.replace(/\\`/g, '`');
+}
+
+function unescapeInBlockMono(text: string): string {
+  return text.replace(/\\```/g, '```');
 }

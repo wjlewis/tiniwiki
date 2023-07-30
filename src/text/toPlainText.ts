@@ -18,5 +18,7 @@ function entityToPlainText(entity: Entity): string {
       return entity.text;
     case EntityType.link:
       return toPlainText(entity.children);
+    case EntityType.footnoteRef:
+      return '';
   }
 }
