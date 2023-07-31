@@ -43,18 +43,21 @@ function partitionBlocks(blocks: Block[]): BlocksWithFootnotes {
         }
         case BlockType.list: {
           const res = block.items.reduce(
-            ({ blocks, footnotes }, item) => {
+            ({ items, footnotes }, item) => {
               const res = partitionBlocks(item);
               return {
-                blocks: [...blocks, ...res.blocks],
+                items: [...items, res.blocks],
                 footnotes: [...footnotes, ...res.footnotes],
               };
             },
-            { blocks: [], footnotes: [] } as BlocksWithFootnotes
+            { items: [], footnotes: [] } as {
+              items: Array<Block[]>;
+              footnotes: FootnoteBlock[];
+            }
           );
 
           return {
-            blocks: [...blocks, ...res.blocks],
+            blocks: [...blocks, { ...block, items: res.items }],
             footnotes: [...footnotes, ...res.footnotes],
           };
         }

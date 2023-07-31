@@ -49,7 +49,10 @@ const Block: React.FC<BlockProps> = ({ block }) => {
       return (
         <div id={id} className="footnote">
           <a href={href}>[{block.key}]</a>
-          <Blocks blocks={block.children} />
+
+          <div className="footnote-content">
+            <Blocks blocks={block.children} />
+          </div>
         </div>
       );
     }

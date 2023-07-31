@@ -30,7 +30,7 @@ const Entity: React.FC<EntityProps> = ({ entity }) => {
       const id = `__footnote_ref_${entity.key}`;
       const href = `#__footnote_${entity.key}`;
       return (
-        <a id={id} href={href}>
+        <a id={id} href={href} className="footnote-ref">
           <sup>[{entity.key}]</sup>
         </a>
       );

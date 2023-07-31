@@ -20,7 +20,9 @@ export function unique<T>(xs: T[]): T[] {
  * `xs`.
  */
 export function sortBy<T>(xs: T[], fn: (x: T) => any): T[] {
-  if (xs.length === 1) {
+  if (xs.length === 0) {
+    return [];
+  } else if (xs.length === 1) {
     return [xs[0]];
   } else {
     const mid = Math.floor(xs.length / 2);
