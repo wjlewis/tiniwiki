@@ -48,7 +48,7 @@ const Block: React.FC<BlockProps> = ({ block }) => {
       const href = `#__footnote_ref_${block.key}`;
       return (
         <div id={id} className="footnote">
-          <a href={href}>[{block.key}]</a>
+          <a href={href}>{block.key}.</a>
 
           <div className="footnote-content">
             <Blocks blocks={block.children} />

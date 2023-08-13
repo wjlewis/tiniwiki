@@ -14,10 +14,6 @@ const Entity: React.FC<EntityProps> = ({ entity }) => {
       return <em>{<Entities entities={entity.children} />}</em>;
     case EntityType.strong:
       return <strong>{<Entities entities={entity.children} />}</strong>;
-    case EntityType.quote:
-      return (
-        <span>&ldquo;{<Entities entities={entity.children} />}&rdquo;</span>
-      );
     case EntityType.mono:
       return <code className="inline">{entity.text}</code>;
     case EntityType.link:
@@ -31,7 +27,7 @@ const Entity: React.FC<EntityProps> = ({ entity }) => {
       const href = `#__footnote_${entity.key}`;
       return (
         <a id={id} href={href} className="footnote-ref">
-          <sup>[{entity.key}]</sup>
+          <sup>{entity.key}</sup>
         </a>
       );
     }

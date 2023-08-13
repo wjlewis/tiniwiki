@@ -246,7 +246,7 @@ function textToEntities(source: string): Entity[] {
       escapeNext = true;
       i++;
       continue;
-    } else if ('_*`"'.includes(c)) {
+    } else if ('_*`'.includes(c)) {
       const endIndex = nextOccurrenceOf(c, source, i + 1);
       if (endIndex >= 0) {
         // Styled or quoted text.
@@ -262,7 +262,6 @@ function textToEntities(source: string): Entity[] {
           const type = {
             _: EntityType.emph,
             '*': EntityType.strong,
-            '"': EntityType.quote,
           }[c];
           entities.push({ type, children } as Entity);
         }
@@ -334,7 +333,6 @@ export type Entity =
   | PlainEntity
   | EmphEntity
   | StrongEntity
-  | QuoteEntity
   | MonoEntity
   | LinkEntity
   | FootnoteRefEntity;
@@ -343,7 +341,6 @@ export enum EntityType {
   plain = 'plain',
   emph = 'emph',
   strong = 'strong',
-  quote = 'quote',
   mono = 'mono',
   link = 'link',
   footnoteRef = 'footnoteRef',
@@ -361,11 +358,6 @@ export interface EmphEntity extends BaseEntity {
 
 export interface StrongEntity extends BaseEntity {
   type: EntityType.strong;
-  children: Entity[];
-}
-
-export interface QuoteEntity extends BaseEntity {
-  type: EntityType.quote;
   children: Entity[];
 }
 

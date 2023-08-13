@@ -12,8 +12,6 @@ function entityToPlainText(entity: Entity): string {
       return toPlainText(entity.children);
     case EntityType.strong:
       return toPlainText(entity.children);
-    case EntityType.quote:
-      return `"${toPlainText(entity.children)}"`;
     case EntityType.mono:
       return entity.text;
     case EntityType.link:

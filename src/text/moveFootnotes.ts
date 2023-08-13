@@ -37,7 +37,7 @@ function partitionBlocks(blocks: Block[]): BlocksWithFootnotes {
         case BlockType.quote: {
           const res = partitionBlocks(block.children);
           return {
-            blocks: [...blocks, ...res.blocks],
+            blocks: [...blocks, { ...block, children: res.blocks }],
             footnotes: [...footnotes, ...res.footnotes],
           };
         }
@@ -105,7 +105,6 @@ function footnoteKeysInEntity(entity: Entity): string[] {
       return [];
     case EntityType.emph:
     case EntityType.strong:
-    case EntityType.quote:
       return footnoteKeysInEntities(entity.children);
     case EntityType.mono:
       return [];
@@ -165,7 +164,6 @@ function reKeyEntity(entity: Entity, map: KeyIndexMap): Entity {
       return entity;
     case EntityType.emph:
     case EntityType.strong:
-    case EntityType.quote:
       return {
         ...entity,
         children: reKeyEntities(entity.children, map),
