@@ -246,7 +246,7 @@ function textToEntities(source: string): Entity[] {
       escapeNext = true;
       i++;
       continue;
-    } else if ('_*`'.includes(c)) {
+    } else if ('_*"`'.includes(c)) {
       const endIndex = nextOccurrenceOf(c, source, i + 1);
       if (endIndex >= 0) {
         // Styled or quoted text.
@@ -262,6 +262,7 @@ function textToEntities(source: string): Entity[] {
           const type = {
             _: EntityType.emph,
             '*': EntityType.strong,
+            '"': EntityType.quote,
           }[c];
           entities.push({ type, children } as Entity);
         }
@@ -269,17 +270,23 @@ function textToEntities(source: string): Entity[] {
         advanceTo(endIndex + 1);
         continue;
       }
-    } else if (c === '[') {
+    } else if (c === '[' || source.substring(i, i + 2) === '![') {
       const rBracketIndex = nextOccurrenceOf(']', source, i + 1);
       if (rBracketIndex >= 0 && source[rBracketIndex + 1] === '(') {
         const rParenIndex = nextOccurrenceOf(')', source, rBracketIndex + 2);
         if (rParenIndex >= 0) {
-          // Link.
+          // Link or image.
           commitWip();
-          const text = source.substring(i + 1, rBracketIndex);
-          const children = textToEntities(text);
-          const href = source.substring(rBracketIndex + 2, rParenIndex);
-          entities.push({ type: EntityType.link, href, children });
+          if (c === '[') {
+            const text = source.substring(i + 1, rBracketIndex);
+            const children = textToEntities(text);
+            const href = source.substring(rBracketIndex + 2, rParenIndex);
+            entities.push({ type: EntityType.link, href, children });
+          } else {
+            const alt = source.substring(i + 2, rBracketIndex);
+            const src = source.substring(rBracketIndex + 2, rParenIndex);
+            entities.push({ type: EntityType.image, alt, src });
+          }
           advanceTo(rParenIndex + 1);
           continue;
         }
@@ -333,17 +340,21 @@ export type Entity =
   | PlainEntity
   | EmphEntity
   | StrongEntity
+  | QuoteEntity
   | MonoEntity
   | LinkEntity
-  | FootnoteRefEntity;
+  | FootnoteRefEntity
+  | ImageEntity;
 
 export enum EntityType {
   plain = 'plain',
   emph = 'emph',
   strong = 'strong',
+  quote = 'quote',
   mono = 'mono',
   link = 'link',
   footnoteRef = 'footnoteRef',
+  image = 'image',
 }
 
 export interface PlainEntity extends BaseEntity {
@@ -358,6 +369,11 @@ export interface EmphEntity extends BaseEntity {
 
 export interface StrongEntity extends BaseEntity {
   type: EntityType.strong;
+  children: Entity[];
+}
+
+export interface QuoteEntity extends BaseEntity {
+  type: EntityType.quote;
   children: Entity[];
 }
 
@@ -377,6 +393,12 @@ export interface FootnoteRefEntity extends BaseEntity {
   key: string;
 }
 
+export interface ImageEntity extends BaseEntity {
+  type: EntityType.image;
+  alt: string;
+  src: string;
+}
+
 interface BaseEntity {
   type: EntityType;
 }
@@ -386,7 +408,7 @@ function unescapeAll(text: string): string {
 }
 
 function unescapeInMono(text: string): string {
-  return text.replace(/\\`/g, '`');
+  return text.replace(/\\(`|\\)/g, (_, c) => c);
 }
 
 function unescapeInBlockMono(text: string): string {

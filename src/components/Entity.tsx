@@ -14,6 +14,8 @@ const Entity: React.FC<EntityProps> = ({ entity }) => {
       return <em>{<Entities entities={entity.children} />}</em>;
     case EntityType.strong:
       return <strong>{<Entities entities={entity.children} />}</strong>;
+    case EntityType.quote:
+      return <>&ldquo;{<Entities entities={entity.children} />}&rdquo;</>;
     case EntityType.mono:
       return <code className="inline">{entity.text}</code>;
     case EntityType.link:
@@ -30,6 +32,9 @@ const Entity: React.FC<EntityProps> = ({ entity }) => {
           <sup>{entity.key}</sup>
         </a>
       );
+    }
+    case EntityType.image: {
+      return <img src={entity.src} alt={entity.alt} />;
     }
   }
 };

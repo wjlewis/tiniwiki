@@ -105,6 +105,7 @@ function footnoteKeysInEntity(entity: Entity): string[] {
       return [];
     case EntityType.emph:
     case EntityType.strong:
+    case EntityType.quote:
       return footnoteKeysInEntities(entity.children);
     case EntityType.mono:
       return [];
@@ -112,6 +113,8 @@ function footnoteKeysInEntity(entity: Entity): string[] {
       return footnoteKeysInEntities(entity.children);
     case EntityType.footnoteRef:
       return [entity.key];
+    case EntityType.image:
+      return [];
   }
 }
 
@@ -164,6 +167,7 @@ function reKeyEntity(entity: Entity, map: KeyIndexMap): Entity {
       return entity;
     case EntityType.emph:
     case EntityType.strong:
+    case EntityType.quote:
       return {
         ...entity,
         children: reKeyEntities(entity.children, map),
@@ -180,5 +184,7 @@ function reKeyEntity(entity: Entity, map: KeyIndexMap): Entity {
         ...entity,
         key: String(map[entity.key]),
       };
+    case EntityType.image:
+      return entity;
   }
 }
