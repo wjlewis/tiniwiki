@@ -4,5 +4,5 @@
 It has no bells or whistles, and makes no attempt to be a general-purpose
 utility.
 
-I use it to write short notes about topics I'm interested in.
-Because of this, it is constantly under development.
+I use it to write short notes about things I'm interested in.
+Because of this, it's constantly under development.

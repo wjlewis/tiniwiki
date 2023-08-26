@@ -13,7 +13,7 @@ function* emitTokens(source: string): Generator<Token> {
     }
   }
 
-  function token(type, start, end) {
+  function token(type: string, start: number, end: number): Token {
     return { type, text: source.slice(start, end) };
   }
 

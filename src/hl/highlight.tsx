@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react';
 import lexJs from './js';
+import lexScheme from './scheme';
 
 export default function highlight(source: string, lang?: string): ReactNode[] {
   const lexer = lang ? lexers[lang] : undefined;
@@ -21,6 +22,7 @@ export default function highlight(source: string, lang?: string): ReactNode[] {
 
 const lexers = {
   javascript: lexJs,
+  scheme: lexScheme,
 };
 
 export interface Token {
