@@ -74,13 +74,13 @@ function linesToBlocks(lines: string[]): Block[] {
       blocks.push({ type: BlockType.quote, children });
       i = endIndex;
       continue;
-    } else if (/^(-|\d+\.)/.test(line.substring(j))) {
+    } else if (/^(- |\d+\.)/.test(line.substring(j))) {
       // List.
       commitWip();
-      const unordered = line.substring(j).startsWith('-');
+      const unordered = line.substring(j).startsWith('- ');
       const items: Array<Block[]> = [];
 
-      const pat = unordered ? /^(-)/ : /^(\d+\.)/;
+      const pat = unordered ? /^(- )/ : /^(\d+\.)/;
       let k = i;
       while (k < lines.length) {
         const line = lines[k].substring(j);
