@@ -63,6 +63,25 @@ function linesToBlocks(lines: string[]): Block[] {
         i = endIndex + 1;
         continue;
       }
+    } else if (line.substring(j).startsWith('$$')) {
+      const endIndex = findIndexFrom(i + 1, lines, line =>
+        line.substring(j).startsWith('$$')
+      );
+
+      if (endIndex >= 0) {
+        // Math.
+        commitWip();
+        const text = lines
+          .slice(i + 1, endIndex)
+          .map(line => line.substring(j))
+          .join('\n');
+        blocks.push({
+          type: BlockType.math,
+          text,
+        });
+        i = endIndex + 1;
+        continue;
+      }
     } else if (line[j] === '>') {
       // Blockquote.
       commitWip();
@@ -163,6 +182,7 @@ export type Block =
   | ParaBlock
   | HeadingBlock
   | PreBlock
+  | MathBlock
   | QuoteBlock
   | ListBlock
   | FootnoteBlock;
@@ -171,6 +191,7 @@ export enum BlockType {
   para = 'para',
   heading = 'heading',
   pre = 'pre',
+  math = 'math',
   quote = 'quote',
   list = 'list',
   footnote = 'footnote',
@@ -191,6 +212,11 @@ export interface PreBlock extends BaseBlock {
   type: BlockType.pre;
   text: string;
   meta?: string;
+}
+
+export interface MathBlock extends BaseBlock {
+  type: BlockType.math;
+  text: string;
 }
 
 export interface QuoteBlock extends BaseBlock {
@@ -246,7 +272,7 @@ function textToEntities(source: string): Entity[] {
       escapeNext = true;
       i++;
       continue;
-    } else if ('_*"`'.includes(c)) {
+    } else if ('_*"`$'.includes(c)) {
       const endIndex = nextOccurrenceOf(c, source, i + 1);
       if (endIndex >= 0) {
         // Styled or quoted text.
@@ -256,6 +282,11 @@ function textToEntities(source: string): Entity[] {
           entities.push({
             type: EntityType.mono,
             text: unescapeInMono(text),
+          });
+        } else if (c === '$') {
+          entities.push({
+            type: EntityType.math,
+            text,
           });
         } else {
           const children = textToEntities(text);
@@ -316,6 +347,7 @@ function nextOccurrenceOf(
 ): number {
   let escapeNext = false;
   let inMono = false;
+  let inMath = false;
 
   for (let i = start; i < source.length; i++) {
     if (escapeNext) {
@@ -326,10 +358,12 @@ function nextOccurrenceOf(
     const c = source[i];
     if (c === '\\') {
       escapeNext = true;
-    } else if (c === marker && !inMono) {
+    } else if (c === marker && !inMono && !inMath) {
       return i;
     } else if (c === '`') {
       inMono = !inMono;
+    } else if (c === '$') {
+      inMath = !inMath;
     }
   }
 
@@ -342,6 +376,7 @@ export type Entity =
   | StrongEntity
   | QuoteEntity
   | MonoEntity
+  | MathEntity
   | LinkEntity
   | FootnoteRefEntity
   | ImageEntity;
@@ -352,6 +387,7 @@ export enum EntityType {
   strong = 'strong',
   quote = 'quote',
   mono = 'mono',
+  math = 'math',
   link = 'link',
   footnoteRef = 'footnoteRef',
   image = 'image',
@@ -379,6 +415,11 @@ export interface QuoteEntity extends BaseEntity {
 
 export interface MonoEntity extends BaseEntity {
   type: EntityType.mono;
+  text: string;
+}
+
+export interface MathEntity extends BaseEntity {
+  type: EntityType.math;
   text: string;
 }
 

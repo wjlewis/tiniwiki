@@ -1,4 +1,5 @@
 import React from 'react';
+import katex from 'katex';
 import { Block, BlockType } from '../text/parse';
 import Blocks from './Blocks';
 import Entities from './Entities';
@@ -26,8 +27,22 @@ const Block: React.FC<BlockProps> = ({ block }) => {
     case BlockType.pre:
       return (
         <pre>
-          <code>{highlight(block.text, block.meta)}</code>
+          <code className="block code">
+            {highlight(block.text, block.meta)}
+          </code>
         </pre>
+      );
+    case BlockType.math:
+      return (
+        <div
+          className="block math"
+          dangerouslySetInnerHTML={{
+            __html: katex.renderToString(block.text, {
+              displayMode: true,
+              throwOnError: false,
+            }),
+          }}
+        />
       );
     case BlockType.quote:
       return (

@@ -13,6 +13,7 @@ function entityToPlainText(entity: Entity): string {
     case EntityType.strong:
       return toPlainText(entity.children);
     case EntityType.mono:
+    case EntityType.math:
       return entity.text;
     case EntityType.link:
       return toPlainText(entity.children);
