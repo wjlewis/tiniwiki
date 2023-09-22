@@ -1,6 +1,7 @@
 import React, { ReactNode } from 'react';
 import lexHaskell from './haskell';
 import lexJs from './js';
+import lexPython from './python';
 import lexRunlambda from './runlambda';
 import lexScheme from './scheme';
 
@@ -25,6 +26,7 @@ export default function highlight(source: string, lang?: string): ReactNode[] {
 const lexers = {
   haskell: lexHaskell,
   javascript: lexJs,
+  python: lexPython,
   runlambda: lexRunlambda,
   scheme: lexScheme,
 };

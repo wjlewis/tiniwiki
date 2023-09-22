@@ -346,8 +346,8 @@ function nextOccurrenceOf(
   start: number
 ): number {
   let escapeNext = false;
-  let inMono = false;
-  let inMath = false;
+  let inMono = marker === '`';
+  let inMath = marker === '$';
 
   for (let i = start; i < source.length; i++) {
     if (escapeNext) {
@@ -358,11 +358,15 @@ function nextOccurrenceOf(
     const c = source[i];
     if (c === '\\') {
       escapeNext = true;
-    } else if (c === marker && !inMono && !inMath) {
+    } else if (
+      c === marker &&
+      (!inMono || marker === '`') &&
+      (!inMath || marker === '$')
+    ) {
       return i;
-    } else if (c === '`') {
+    } else if (c === '`' && !inMath) {
       inMono = !inMono;
-    } else if (c === '$') {
+    } else if (c === '$' && !inMono) {
       inMath = !inMath;
     }
   }

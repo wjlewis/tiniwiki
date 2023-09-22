@@ -1,15 +1,20 @@
 import React from 'react';
-import { Note } from '../text/parse';
+import { Block } from '../text/parse';
 import Blocks from './Blocks';
 
 export interface NoteProps {
-  note: Note;
+  blocks: Block[];
+  footnotes: Block[];
 }
 
-const Note: React.FC<NoteProps> = ({ note }) => {
+const Note: React.FC<NoteProps> = ({ blocks, footnotes }) => {
   return (
     <main>
-      <Blocks blocks={note.blocks} />
+      <Blocks blocks={blocks} />
+
+      <div className="footnotes">
+        <Blocks blocks={footnotes} />
+      </div>
     </main>
   );
 };

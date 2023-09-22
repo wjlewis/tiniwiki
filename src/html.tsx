@@ -6,23 +6,22 @@ import parse, { Note as ParsedNote } from './text/parse';
 import moveFootnotes from './text/moveFootnotes';
 import includesMath from './text/includesMath';
 
-export function generateNoteHtml(source: string, meta: MetaData): string {
+export function generateNoteHtml(
+  source: string,
+  headerContents: string[]
+): string {
   const note = moveFootnotes(parse(source));
-  const body = ReactDOM.renderToString(<Note note={note} />);
+  const body = ReactDOM.renderToString(
+    <Note blocks={note.blocks} footnotes={note.footnotes} />
+  );
   const title = extractTitle(note) ?? '';
   const addKatexCss = includesMath(note);
 
   return template
     .replace('{{title}}', title)
     .replace('{{katexCss}}', addKatexCss ? katexCss : '')
-    .replace('{{createdAt}}', formatDate(meta.createdAt))
-    .replace('{{updatedAt}}', formatDate(meta.updatedAt))
+    .replace('{{headerContents}}', headerContents.join('\n'))
     .replace('{{body}}', body);
-}
-
-export interface MetaData {
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 function extractTitle(note: ParsedNote): string | undefined {
@@ -31,31 +30,18 @@ function extractTitle(note: ParsedNote): string | undefined {
   }
 }
 
-function formatDate(date: Date): string {
-  const day = date.getDate();
-  const month = date.getMonth();
-  const year = date.getFullYear();
-
-  return `${month}/${day}/${year}`;
-}
-
 const template = `
 <!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8" />
-    <link rel="stylesheet" href="/main.css" />
     {{katexCss}}
+    {{headerContents}}
     <title>{{title}}</title>
   </head>
 
   <body>
     {{body}}
-  
-    <footer>
-      <span>Created: {{createdAt}}</span>
-      <span>Last updated: {{updatedAt}}</span>
-    </footer>
   </body>
 </html>
 `.trim();

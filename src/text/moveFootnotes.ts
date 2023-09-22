@@ -8,7 +8,14 @@ import {
 } from './parse';
 import { sortBy, unique } from '../tools';
 
-export default function moveFootnotes(note: Note): Note {
+interface BlocksWithFootnotes {
+  blocks: NonFootnoteBlock[];
+  footnotes: FootnoteBlock[];
+}
+
+type NonFootnoteBlock = Exclude<Block, FootnoteBlock>;
+
+export default function moveFootnotes(note: Note): BlocksWithFootnotes {
   const { blocks, footnotes } = partitionBlocks(note.blocks);
   const keys = footnoteKeysInBlocks(note.blocks);
   const keyIndexMap = keys.reduce(
@@ -22,7 +29,8 @@ export default function moveFootnotes(note: Note): Note {
   );
 
   return {
-    blocks: [...reKeyBlocks(blocks, keyIndexMap), ...sortedFootnotes],
+    blocks: reKeyBlocks(blocks, keyIndexMap) as NonFootnoteBlock[],
+    footnotes: sortedFootnotes,
   };
 }
 
@@ -68,11 +76,6 @@ function partitionBlocks(blocks: Block[]): BlocksWithFootnotes {
     },
     { blocks: [], footnotes: [] } as BlocksWithFootnotes
   );
-}
-
-interface BlocksWithFootnotes {
-  blocks: Block[];
-  footnotes: FootnoteBlock[];
 }
 
 function footnoteKeysInBlocks(blocks: Block[]): string[] {

@@ -19,7 +19,7 @@ export default function lex(source: string): Token[] {
       type = 'punct';
     } else if (opChars.includes(c)) {
       type = 'op';
-    } else if (c === '-' && source[pos] === '-') {
+    } else if (c === '#') {
       skipWhile(c => !'\n\r'.includes(c));
       type = 'comment';
     } else if (' \t'.includes(c)) {
@@ -65,27 +65,46 @@ export default function lex(source: string): Token[] {
   return tokens;
 }
 
-const punctChars = '()[]=';
+const punctChars = '()[]{}=';
 
-const opChars = '!@$%^&*-_=+|;:,<.>/?';
+const opChars = '!^*-=+<>';
 
 const keywords = [
+  'False',
+  'None',
+  'True',
+  'and',
+  'as',
+  'assert',
+  'async',
+  'await',
+  'break',
   'class',
-  'data',
-  'deriving',
-  'do',
+  'continue',
+  'def',
+  'del',
+  'elif',
   'else',
+  'except',
+  'finally',
+  'for',
+  'from',
+  'global',
   'if',
   'import',
   'in',
-  'instance',
-  'let',
-  'module',
-  'newtype',
-  'otherwise',
-  'then',
-  'type',
-  'where',
+  'is',
+  'lambda',
+  'nonlocal',
+  'not',
+  'or',
+  'pass',
+  'raise',
+  'return',
+  'try',
+  'while',
+  'with',
+  'yield',
 ];
 
 function startsName(c: string): boolean {
@@ -93,7 +112,7 @@ function startsName(c: string): boolean {
 }
 
 function continuesName(c: string): boolean {
-  return startsName(c) || isDigit(c) || c === "'";
+  return startsName(c) || isDigit(c);
 }
 
 function isDigit(c: string): boolean {
